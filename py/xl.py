@@ -72,7 +72,9 @@ class Name(Leaf): pass
 ## @{
 
 ## structural trees
-class Inner(Node): pass
+class Inner(Node):
+    def __init__(self,A,B):
+        Node.__init__(self,'') ; self << A << B
 
 ## infix operrator
 class Infix(Inner): pass
@@ -101,13 +103,13 @@ import ply.yacc as yacc
 ## @{
 
 ## tokens list
-tokens = ['int','real','text','name','op','nl']
+tokens = ['int','real','text','name','op','nl','semicolon']
 
 ## ignored chars
 t_ignore = ' \t\r'
 
 ## line comment
-t_ignore_COMMENT = '//.*'
+def t_ignore_COMMENT(t): r'//.*'
 
 ## new line
 def t_nl(t):
@@ -115,9 +117,19 @@ def t_nl(t):
     t.lexer.lineno += 1
     return t
 
+## semicolin delimiter
+def t_semicolon(t):
+    r';'
+    return t
+
+## text
+def t_text(t):
+    r"\'.*?\'"
+    t.value = Text(t.value[1:-1]) ; return t
+
 ## operator
 def t_op(t):
-    r'[\+\-]'
+    r'[\+\-\*\/\%]'
     t.value = Name(t.value) ; return t
     
 ## floating point
@@ -127,12 +139,12 @@ def t_real(t):
     
 ## hex
 def t_hex(t):
-    r'0x[0-9a-fA-F]+'
+    r'(16\#|0x)[0-9a-fA-F]+'
     t.value = Name(t.value) ; t.type = 'name' ; return t
     
 ## binary
 def t_bin(t):
-    r'0b[0-1]+'
+    r'(2\#|0b)[0-1]+'
     t.value = Name(t.value) ; t.type = 'name' ; return t
     
 ## integer
@@ -163,6 +175,12 @@ def p_none(p):
 ## drop newlines
 def p_nl(p):
     ' REPL : REPL nl'
+    p[0] = p[1]
+    
+## semicolon delimiter
+def p_semicolon(p):
+    ' REPL : REPL semicolon '
+    p[0] = p[1]
 
 ## recursive parser (sequence of **ex**pressions)
 def p_recur(p):
@@ -172,7 +190,17 @@ def p_recur(p):
 ## prefix expression
 def p_prefix(p):
     ' ex : op ex '
-    p[0] = p[1] << p[2]
+    p[0] = Prefix(p[1],p[2])
+    
+## postfix expression
+def p_postfix(p):
+    ' ex : ex op'
+    p[0] = Postfix(p[1],p[2])
+    
+## infix expression
+def p_infix(p):
+    ' ex : ex op ex '
+    p[0] = p[2] ; p[0] << p[1] << p[3]
     
 ## integer is expression
 def p_int(p):
