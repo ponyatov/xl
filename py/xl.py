@@ -124,7 +124,17 @@ def t_op(t):
 def t_real(t):
     r'[0-9]+\.[0-9]+([eE][\+\-]?[0-9]+)?'
     t.value = Real(float(t.value)) ; return t
-
+    
+## hex
+def t_hex(t):
+    r'0x[0-9a-fA-F]+'
+    t.value = Name(t.value) ; t.type = 'name' ; return t
+    
+## binary
+def t_bin(t):
+    r'0b[0-1]+'
+    t.value = Name(t.value) ; t.type = 'name' ; return t
+    
 ## integer
 def t_int(t):
     r'[0-9]+'
