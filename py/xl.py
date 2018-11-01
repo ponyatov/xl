@@ -18,7 +18,11 @@ class Node:
     def __init__(self,V):
         ## primitive value
         self.value = V
+        ## attributes (attribute grammar elements, or object slots)
+        ## @details `std::map<std::string,Node*>`
+        self.attr = {}
         ## nested elements = vector & stack
+        ## @details `std::vector<Node*>`
         self.nest = []
         
     # vector/stack
@@ -31,17 +35,26 @@ class Node:
     def push(self,obj):
         self.nest.append(obj) ; return self
         
+    # associative array / object slots
+    
+    ## `obj[key] = value`
+    def __setitem__(self,K,V):
+        self.attr[K] = V ; return self
+        
     ## print
     def __repr__(self):
         return self.dump()
     ## full tree dump
-    def dump(self,depth=0):
-        S = self.pad(depth) + self.head()
-        for j in self.nest: S += j.dump(depth+1)
+    def dump(self,depth=0,prefix=''):
+        S = self.pad(depth) + self.head(prefix)
+        for i in self.attr:
+            S += self.attr[i].dump(depth+1, prefix='%s = ' % i)
+        for j in self.nest:
+            S += j.dump(depth+1)
         return S
     ## short header-only dump
-    def head(self):
-        return '<%s:%s>' % (self.__class__.__name__.lower(),self.value)
+    def head(self,prefix=''):
+        return '%s<%s:%s>' % (prefix, self.__class__.__name__.lower(), self.value)
     ## left pad with tabs (for tree)
     def pad(self,N):
         return '\n' + '\t'*N
@@ -73,6 +86,9 @@ class Name(Leaf): pass
 
 ## structural trees
 class Inner(Node):
+    ## construct B-tree node from two childs
+    ## @param[in] A left child
+    ## @param[in] B right child
     def __init__(self,A,B):
         Node.__init__(self,'') ; self << A << B
 
@@ -86,7 +102,8 @@ class Prefix(Inner): pass
 class Postfix(Inner): pass
 
 ## curly block
-class Block(Inner): pass
+class Block(Inner):
+    def __init__(self,V): Node.__init__(self, V)
 
 ## @}
 
@@ -235,14 +252,17 @@ parser = yacc.yacc(debug=False,write_tables=False)
 ## @defgroup startup Startup code
 ## @{
 
-## source code
-try:
-    SRC = open(sys.argv[1]).read()
-except IndexError: 
-    SRC = open('test.xl').read()
+if __name__ == '__main__':
+    ## source code
+    try:
+        SRC = open(sys.argv[1]).read()
+    except IndexError: 
+        SRC = open('test.xl').read()
 
-parser.parse(SRC)
+    parser.parse(SRC)
 
 ## @}
 
 ## @}
+
+
